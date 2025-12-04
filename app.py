@@ -1775,8 +1775,13 @@ with tab7:
             if provider_name in PROVIDERS:
                 env_var = PROVIDERS[provider_name]["env_var"]
                 current_config[env_var] = data['api_key']
+                # CRITICAL: Set env var for this session so other parts of app can use it
+                if data['api_key']:
+                    os.environ[env_var] = data['api_key']
+                    
                 if "model_var" in PROVIDERS[provider_name] and data['model']:
                     current_config[PROVIDERS[provider_name]["model_var"]] = data['model']
+                    os.environ[PROVIDERS[provider_name]["model_var"]] = data['model']
 
     # --- Status Dashboard & Configuration (Merged) ---
     st.subheader("Visão Geral e Configuração")
