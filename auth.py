@@ -151,14 +151,19 @@ def _get_fixed_pkce_challenge():
 def get_google_login_url():
     """Returns the URL for Google OAuth login."""
     # Load config to get URL/Key
-    config = load_config()
-    if not config:
-        return None
-        
-    supabase_url = config.get("supabase_url")
-    supabase_key = config.get("supabase_key")
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_KEY")
     
+    # Fallback to streamlit secrets if not in env
+    if not supabase_url and hasattr(st, "secrets"):
+        try:
+            supabase_url = st.secrets.get("SUPABASE_URL")
+            supabase_key = st.secrets.get("SUPABASE_KEY")
+        except:
+            pass
+            
     if not supabase_url or not supabase_key:
+        st.error("Supabase URL/Key not found in environment or secrets.")
         return None
     
     try:
