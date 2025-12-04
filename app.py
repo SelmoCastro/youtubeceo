@@ -1,28 +1,3 @@
-import streamlit as st
-
-# --- Configuration ---
-st.set_page_config(page_title="Gerenciador de SEO para YouTube", layout="wide", page_icon="🚀")
-
-import pandas as pd
-import json
-import os
-import datetime
-import plotly.express as px
-import subprocess
-import psutil
-import re
-from googleapiclient.discovery import build
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.http import MediaFileUpload
-from googleapiclient.errors import HttpError
-import google.generativeai as genai
-import time
-import base64
-import auth
-import database
-import requests
 from openai import OpenAI
 # from moviepy.editor import *
 from PIL import Image, ImageDraw, ImageFont
@@ -661,7 +636,7 @@ if not st.session_state.logged_in:
 
 # --- Tabs ---
 
-tab_home, tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🏠 Início", "🚀 Desempenho", "💰 Monetização", "📤 Upload", "✨ Otimizar Existentes", "📝 Revisões Pendentes", "⚙️ Controle", "🔌 Integrações"])
+tab_home, tab1, tab2, tab3, tab4, tab5, tab7 = st.tabs(["🏠 Início", "🚀 Desempenho", "💰 Monetização", "📤 Upload", "✨ Otimizar Existentes", "📝 Revisões Pendentes", "🔌 Integrações"])
 
 # --- Tab Home: Dashboard ---
 with tab_home:
@@ -1464,56 +1439,10 @@ with tab5:
                         st.toast("Sugestão rejeitada.", icon="🗑️")
                         st.rerun()
 
-# --- Tab 6: Control ---
-with tab6:
-    st.title("⚙️ Controle do Sistema")
-    
-    # Check if script is running
-    is_running = False
-    pid = None
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        try:
-            if 'python' in proc.info['name'] and SCRIPT_NAME in ' '.join(proc.info['cmdline']):
-                is_running = True
-                pid = proc.info['pid']
-                break
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-
-    col_ctrl1, col_ctrl2 = st.columns(2)
-    
-    with col_ctrl1:
-        st.subheader("Status")
-        if is_running:
-            st.success(f"🟢 Robô de Otimização está RODANDO")
-            st.caption(f"PID: {pid}")
-            
-            if st.button("🛑 Parar Script", use_container_width=True):
-                # Kill process
-                for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                    try:
-                        if 'python' in proc.info['name'] and SCRIPT_NAME in ' '.join(proc.info['cmdline']):
-                            proc.terminate()
-                            st.warning("Robô parado.")
-                            st.rerun()
-                    except:
-                        pass
-        else:
-            st.error(f"🔴 Robô de Otimização está PARADO")
-            if st.button("▶️ Iniciar Script", use_container_width=True):
-                # Start process
-                subprocess.Popen(["python", SCRIPT_NAME], shell=True)
-                st.success("Robô iniciado!")
-                st.rerun()
-
-    with col_ctrl2:
-        st.subheader("Logs")
-        if os.path.exists('log.txt'):
-            with open('log.txt', 'r', encoding='utf-8', errors='ignore') as f:
-                logs = f.readlines()
-                st.code(''.join(logs[-10:]), language='text')
-        else:
-            st.info("Nenhum log encontrado.")
+# --- Tab 6: Control (Removed) ---
+# with tab6:
+#     st.title("⚙️ Controle do Sistema")
+#     st.info("Funcionalidade de robô em segundo plano removida para compatibilidade com nuvem.")
 
 def fetch_google_models(api_key):
     """Fetches available models from Google Gemini API."""
