@@ -1853,7 +1853,9 @@ with tab7:
                 if current_config.get(info["env_var"]) and current_config.get(info["key_var"]):
                     is_configured = True
             elif name == "YouTube Data API":
-                if os.path.exists("client_secret.json"):
+                # Use absolute path to be safe
+                secret_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "client_secret.json")
+                if os.path.exists(secret_path):
                     is_configured = True
             else:
                 if current_config.get(info["env_var"]):
@@ -1899,18 +1901,19 @@ with tab7:
                     
                     # Special handling for YouTube
                     elif name == "YouTube Data API":
+                        secret_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "client_secret.json")
                         if is_configured:
                             st.success("Client Secret encontrado!")
                             if st.button("🗑️ Remover", key=f"del_yt_{idx}"):
                                 try:
-                                    os.remove("client_secret.json")
+                                    os.remove(secret_path)
                                     st.rerun()
                                 except: pass
                         else:
                             st.error("Arquivo faltando.")
                             uploaded = st.file_uploader("Upload client_secret.json", type=['json'], key=f"up_{idx}")
                             if uploaded:
-                                with open("client_secret.json", "wb") as f:
+                                with open(secret_path, "wb") as f:
                                     f.write(uploaded.getbuffer())
                                 st.success("Salvo!")
                                 time.sleep(1)
