@@ -133,6 +133,18 @@ def check_session():
         return True
     return False
 
+import hashlib
+import base64
+import secrets
+
+def _generate_pkce():
+    """Generates a PKCE code verifier and challenge."""
+    verifier = secrets.token_urlsafe(64)
+    # Calculate challenge
+    digest = hashlib.sha256(verifier.encode('utf-8')).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('utf-8')
+    return verifier, challenge
+
 def get_google_login_url():
     """Returns the URL for Google OAuth login."""
     supabase = init_supabase()
@@ -140,11 +152,22 @@ def get_google_login_url():
         return None
     
     try:
+        # Generate PKCE manually to persist verifier in URL
+        verifier, challenge = _generate_pkce()
+        
+        # Construct redirect URL with verifier
+        base_redirect = os.environ.get("REDIRECT_URL", "http://localhost:8501")
+        redirect_url = f"{base_redirect}?v={verifier}"
+        
         # Get the URL for Google OAuth
         data = supabase.auth.sign_in_with_oauth({
             "provider": "google",
             "options": {
-                "redirectTo": os.environ.get("REDIRECT_URL", "http://localhost:8501")
+                "redirectTo": redirect_url,
+                "queryParams": {
+                    "code_challenge": challenge,
+                    "code_challenge_method": "S256"
+                }
             }
         })
         return data.url
@@ -156,12 +179,16 @@ def handle_oauth_callback():
     try:
         query_params = st.query_params
         code = query_params.get("code")
+        verifier = query_params.get("v") # Retrieve verifier from URL
         
-        if code:
+        if code and verifier:
             supabase = init_supabase()
             if supabase:
-                # Exchange code for session
-                response = supabase.auth.exchange_code_for_session({"auth_code": code})
+                # Exchange code for session with verifier
+                response = supabase.auth.exchange_code_for_session({
+                    "auth_code": code,
+                    "code_verifier": verifier
+                })
                 if response.session:
                     st.session_state['supabase_session'] = response.session
                     st.session_state.logged_in = True
