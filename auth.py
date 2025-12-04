@@ -150,17 +150,29 @@ def _get_fixed_pkce_challenge():
 
 def get_google_login_url():
     """Returns the URL for Google OAuth login."""
-    # Load config to get URL/Key
+    # Load config to get URL/Key - Logic matched with init_supabase
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_KEY")
     
-    # Fallback to streamlit secrets if not in env
-    if not supabase_url and hasattr(st, "secrets"):
-        try:
-            supabase_url = st.secrets.get("SUPABASE_URL")
-            supabase_key = st.secrets.get("SUPABASE_KEY")
-        except:
-            pass
+    # Try loading from config if not in env
+    if not supabase_url or not supabase_key:
+        # Check Streamlit Secrets (Cloud)
+        if hasattr(st, "secrets"):
+            try:
+                supabase_url = st.secrets.get("SUPABASE_URL") or st.secrets.get("general", {}).get("SUPABASE_URL")
+                supabase_key = st.secrets.get("SUPABASE_KEY") or st.secrets.get("general", {}).get("SUPABASE_KEY")
+            except:
+                pass
+
+    if not supabase_url or not supabase_key:
+        if os.path.exists(API_CONFIG_FILE):
+            try:
+                with open(API_CONFIG_FILE, 'r') as f:
+                    config = json.load(f)
+                    supabase_url = supabase_url or config.get("SUPABASE_URL")
+                    supabase_key = supabase_key or config.get("SUPABASE_KEY")
+            except:
+                pass
             
     if not supabase_url or not supabase_key:
         st.error("Supabase URL/Key not found in environment or secrets.")
