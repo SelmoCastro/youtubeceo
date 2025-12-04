@@ -156,8 +156,11 @@ def get_google_login_url():
         verifier, challenge = _generate_pkce()
         
         # Construct redirect URL with verifier
-        base_redirect = os.environ.get("REDIRECT_URL", "http://localhost:8501")
+        # Default to Cloud URL if env var not set
+        base_redirect = os.environ.get("REDIRECT_URL", "https://youtubeceo.streamlit.app")
         redirect_url = f"{base_redirect}?v={verifier}"
+        
+        st.info(f"Debug - Generated Redirect URL: {redirect_url}") # Debug log
         
         # Get the URL for Google OAuth
         data = supabase.auth.sign_in_with_oauth({
