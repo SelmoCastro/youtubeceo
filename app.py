@@ -1777,196 +1777,89 @@ with tab7:
                 if "model_var" in PROVIDERS[provider_name] and data['model']:
                     current_config[PROVIDERS[provider_name]["model_var"]] = data['model']
 
-    # --- Status Dashboard ---
-    st.subheader("Visão Geral")
+    # --- Status Dashboard & Configuration (Merged) ---
+    st.subheader("Visão Geral e Configuração")
     
-    # Custom HTML for Cards
-    cols = st.columns(4)
+    # Create a grid layout
+    cols = st.columns(3)
+    
     for idx, (name, info) in enumerate(PROVIDERS.items()):
-        is_configured = False
-        if name == "Supabase Auth":
-            if current_config.get(info["env_var"]) and current_config.get(info["key_var"]):
-                is_configured = True
-        elif name == "YouTube Data API":
-            if os.path.exists("client_secret.json"):
-                is_configured = True
-        else:
-            if current_config.get(info["env_var"]):
-                is_configured = True
-        
-        status_class = "status-active" if is_configured else "status-inactive"
-        status_icon_html = "⚡" if is_configured else "💤"
-        status_text_class = "active-text" if is_configured else "inactive-text"
-        status_label = "ATIVO" if is_configured else "INATIVO"
-        
-        card_html = f"""
-        <div class="integration-card {status_class}">
-            <div class="status-icon">{info['icon']}</div>
-            <div style="font-weight: 600; margin-bottom: 5px;">{name.split()[0]}</div>
-            <div class="status-text {status_text_class}">
-                {status_icon_html} {status_label}
-            </div>
-        </div>
-        """
-        with cols[idx % 4]:
-            st.markdown(card_html, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # --- Configuration Area ---
-    st.subheader("⚙️ Configurar Provedor")
-    
-    # Use pills if available (Streamlit 1.40+), else radio horizontal
-    try:
-        selected_provider = st.pills("Selecione o serviço:", list(PROVIDERS.keys()), selection_mode="single")
-    except AttributeError:
-        selected_provider = st.radio("Selecione o serviço:", list(PROVIDERS.keys()), horizontal=True)
-    
-    if not selected_provider:
-        selected_provider = list(PROVIDERS.keys())[0]
-
-    st.markdown("####") # Spacer
-
-    with st.container(border=True):
-        provider_info = PROVIDERS[selected_provider]
-        env_var = provider_info["env_var"]
-        model_var = provider_info.get("model_var")
-        
-        col_icon, col_desc = st.columns([0.5, 10])
-        with col_icon:
-            st.markdown(f"## {provider_info['icon']}")
-        with col_desc:
-            st.markdown(f"### {selected_provider}")
-            st.caption(provider_info["help"])
-        
-        st.divider()
-        
-        # Special case for Supabase (URL + Key)
-        if selected_provider == "Supabase Auth":
-            key_var = provider_info["key_var"]
+        with cols[idx % 3]:
+            # Determine status
+            is_configured = False
+            if name == "Supabase Auth":
+                if current_config.get(info["env_var"]) and current_config.get(info["key_var"]):
+                    is_configured = True
+            elif name == "YouTube Data API":
+                if os.path.exists("client_secret.json"):
+                    is_configured = True
+            else:
+                if current_config.get(info["env_var"]):
+                    is_configured = True
             
-            curr_url = current_config.get(env_var, "")
-            curr_key = current_config.get(key_var, "")
+            status_icon = "✅" if is_configured else "⚠️"
+            status_color = "green" if is_configured else "orange"
             
-            new_url = st.text_input(f"Project URL", value=curr_url, placeholder="https://your-project.supabase.co")
-            new_key = st.text_input(f"Anon Key", value=curr_key, type="password", placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
-            
-            if st.button("💾 Salvar Credenciais Supabase", use_container_width=True):
-                # Safety Check: Try to connect before saving
-                try:
-                    from supabase import create_client
-                    test_client = create_client(new_url, new_key)
-                    
-                    current_config[env_var] = new_url
-                    current_config[key_var] = new_key
-                    
-                    with open(API_CONFIG_FILE, 'w') as f:
-                        json.dump(current_config, f, indent=4)
-                    
-                    os.environ[env_var] = new_url
-                    os.environ[key_var] = new_key
-                    
-                    st.success("Credenciais Supabase validadas e salvas!")
-                    time.sleep(1)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Falha ao conectar com Supabase. Verifique URL e Key. Erro: {e}")
-
-        elif selected_provider == "YouTube Data API":
-            # Special case for YouTube (File Content)
-            current_content = ""
-            if os.path.exists("client_secret.json"):
-                try:
-                    with open("client_secret.json", "r") as f:
-                        current_content = f.read()
-                except:
-                    pass
-            
-            tab_upload, tab_paste = st.tabs(["📤 Upload Arquivo", "✍️ Colar JSON"])
-            
-            with tab_upload:
-                uploaded_file = st.file_uploader("Faça upload do client_secret.json", type=['json'])
-                if uploaded_file is not None:
-                    if st.button("💾 Salvar Arquivo Enviado", use_container_width=True):
-                        try:
-                            content = uploaded_file.getvalue().decode("utf-8")
-                            json.loads(content) # Validate
-                            with open("client_secret.json", "w") as f:
-                                f.write(content)
-                            st.success("Arquivo salvo com sucesso!")
-                            time.sleep(1)
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erro ao processar arquivo: {e}")
-
-            with tab_paste:
-                new_content = st.text_area("Conteúdo do JSON", value=current_content, height=200, placeholder='{"installed": {"client_id": "...", ...}}')
-                if st.button("💾 Salvar JSON Colado", use_container_width=True):
-                    try:
-                        # Validate JSON
-                        json_content = json.loads(new_content)
-                        with open("client_secret.json", "w") as f:
-                            f.write(new_content)
-                        st.success("Arquivo client_secret.json salvo com sucesso!")
-                        time.sleep(1)
-                        st.rerun()
-                    except json.JSONDecodeError:
-                        st.error("O conteúdo não é um JSON válido.")
-                    except Exception as e:
-                        st.error(f"Erro ao salvar arquivo: {e}")
-        
-        else:
-            # Input field for API Key
-            current_key = current_config.get(env_var, "")
-            new_key = st.text_input(f"Chave da API", value=current_key, type="password", placeholder=f"Cole sua chave {selected_provider} aqui...")
-            
-            # Dynamic Model Fetching
-            available_models = provider_info.get("models", [])
-            
-            if new_key: # If we have a key, try to fetch models
-                if selected_provider == "Google Gemini":
-                    fetched = fetch_google_models(new_key)
-                    if fetched:
-                        available_models = fetched
-                elif selected_provider == "OpenAI (ChatGPT)":
-                    fetched = fetch_openai_models(new_key)
-                    if fetched:
-                        available_models = fetched
-            
-            # Input field for Model (if applicable)
-            new_model = None
-            if available_models:
-                current_model = current_config.get(model_var, available_models[0])
-                # Ensure current model is in list, if not add it or default
-                if current_model not in available_models:
-                    if available_models:
-                            current_model = available_models[0]
-                    else:
-                            current_model = None
+            # Create Expander acting as a Card
+            with st.expander(f"{info['icon']} {name}  {status_icon}", expanded=False):
+                st.caption(info['help'])
                 
-                if current_model:
-                    index = available_models.index(current_model)
-                    new_model = st.selectbox(f"Modelo", available_models, index=index)
-                    if selected_provider in ["Google Gemini", "OpenAI (ChatGPT)"]:
-                            st.caption("✅ Lista de modelos atualizada via API.")
-
-            if st.button("💾 Salvar Configuração", use_container_width=True):
-                user = get_current_user_cached()
-                if user:
-                    success, msg = database.save_user_api_key(user.id, selected_provider, new_key, new_model)
-                    if success:
-                        # Update env vars for current session
-                        os.environ[env_var] = new_key
-                        if new_model:
-                            os.environ[model_var] = new_model
-                        
-                        st.success(f"Configuração para {selected_provider} salva no banco de dados!")
-                        time.sleep(1)
-                        st.rerun()
+                # Special handling for Supabase (Read-only mostly)
+                if name == "Supabase Auth":
+                    st.text_input("URL", value=current_config.get(info["env_var"], "")[:20]+"...", disabled=True)
+                    st.text_input("Key", value="****************", disabled=True)
+                    st.info("Configurado via Segredos do Streamlit.")
+                
+                # Special handling for YouTube
+                elif name == "YouTube Data API":
+                    if is_configured:
+                        st.success("Client Secret encontrado!")
                     else:
-                        st.error(f"Erro ao salvar no banco: {msg}")
+                        st.error("Arquivo client_secret.json não encontrado.")
+                        
                 else:
-                    st.error("Usuário não autenticado.")
+                    # Standard API Key Input
+                    env_var = info["env_var"]
+                    model_var = info.get("model_var")
+                    
+                    current_key = current_config.get(env_var, "")
+                    new_key = st.text_input(f"Chave API", value=current_key, type="password", key=f"key_{idx}")
+                    
+                    # Model Selection
+                    new_model = None
+                    if model_var:
+                        available_models = info.get("models", [])
+                        
+                        # Dynamic Fetching
+                        if new_key:
+                             if name == "Google Gemini":
+                                fetched = fetch_google_models(new_key)
+                                if fetched: available_models = fetched
+                             elif name == "OpenAI (ChatGPT)":
+                                fetched = fetch_openai_models(new_key)
+                                if fetched: available_models = fetched
+                        
+                        current_model = current_config.get(model_var, available_models[0] if available_models else "")
+                        if available_models:
+                            if current_model not in available_models:
+                                current_model = available_models[0]
+                            new_model = st.selectbox(f"Modelo", available_models, index=available_models.index(current_model), key=f"model_{idx}")
+                    
+                    # Save Button
+                    if st.button(f"💾 Salvar {name.split()[0]}", key=f"save_{idx}", use_container_width=True):
+                         user = get_current_user_cached()
+                         if user:
+                            success, msg = database.save_user_api_key(user.id, name, new_key, new_model)
+                            if success:
+                                os.environ[env_var] = new_key
+                                if new_model: os.environ[model_var] = new_model
+                                st.success("Salvo!")
+                                time.sleep(1)
+                                st.rerun()
+                            else:
+                                st.error(f"Erro: {msg}")
+                         else:
+                            st.error("Login necessário.")
 
     # --- AI Persona Section ---
     st.markdown("---")
