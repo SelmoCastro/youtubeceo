@@ -1496,7 +1496,7 @@ with tab4:
             # End of Bulk Mode Logic
             selected_video_id = None # Reset if in bulk mode to avoid rendering single video UI below
             if mode_type == "Vídeo Único" and 'selected_video_name' in locals():
-                 selected_video_id = video_options[selected_video_name]
+                 selected_video_id = video_options.get(selected_video_name)
         
         # 2. Fetch Current Metadata
         if selected_video_id:
@@ -1626,17 +1626,6 @@ with tab4:
                                 "status": "success"
                             })
 
-                            # Clear suggestions but keep success message visible
-                            st.session_state.opt_suggestions = {}
-
-# --- Tab 5: Pending Reviews ---
-with tab5:
-    st.title("📝 Fila de Otimização")
-    
-    user = get_current_user_cached()
-    if not user:
-        st.error("Faça login para ver suas pendências.")
-    else:
         pending = database.get_pending_reviews(user.id)
         
         if not pending:
