@@ -795,8 +795,8 @@ with tab2:
             subs = get_subscriber_count(service)
             
             # Fetch Watch Hours
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-            watch_hours = get_watch_time_year(creds)
+            # Use credentials from the service object instead of reading file
+            watch_hours = get_watch_time_year(service._http.credentials)
             
             # Progress Bars
             col_mon1, col_mon2 = st.columns(2)
@@ -1459,7 +1459,7 @@ with tab6:
     with col_ctrl2:
         st.subheader("Logs")
         if os.path.exists('log.txt'):
-            with open('log.txt', 'r') as f:
+            with open('log.txt', 'r', encoding='utf-8', errors='ignore') as f:
                 logs = f.readlines()
                 st.code(''.join(logs[-10:]), language='text')
         else:
