@@ -276,6 +276,20 @@ def get_authenticated_service():
     if user:
         token_data = database.get_youtube_token(user.id)
         if token_data:
+            # Inject client_id and client_secret from file if available
+            secret_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "client_secret.json")
+            if os.path.exists(secret_path):
+                try:
+                    with open(secret_path, 'r') as f:
+                        client_config = json.load(f)
+                        # Handle both "web" and "installed" formats
+                        config_data = client_config.get('web') or client_config.get('installed')
+                        if config_data:
+                            token_data['client_id'] = config_data.get('client_id')
+                            token_data['client_secret'] = config_data.get('client_secret')
+                except:
+                    pass
+            
             creds = Credentials.from_authorized_user_info(token_data, SCOPES)
             
     # Fallback to local file REMOVED for cloud security/isolation
