@@ -1,6 +1,27 @@
+import streamlit as st
+import os
+import json
+import datetime
+import requests
+import base64
+import re
+import pandas as pd
+import plotly.express as px
+import google.generativeai as genai
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from googleapiclient.errors import HttpError
 from openai import OpenAI
 # from moviepy.editor import *
 from PIL import Image, ImageDraw, ImageFont
+
+import auth
+import database
+
+# --- Configuration ---
+st.set_page_config(page_title="Gerenciador de SEO para YouTube", layout="wide", page_icon="🚀")
 
 SCOPES = [
     'https://www.googleapis.com/auth/youtube.force-ssl',
