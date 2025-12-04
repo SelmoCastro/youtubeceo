@@ -1904,7 +1904,26 @@ with tab7:
                         secret_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "client_secret.json")
                         if is_configured:
                             st.success("Client Secret encontrado!")
-                            if st.button("🗑️ Remover", key=f"del_yt_{idx}"):
+                            
+                            # Check if user has token
+                            has_token = False
+                            if user:
+                                token = database.get_youtube_token(user.id)
+                                if token:
+                                    has_token = True
+                            
+                            if has_token:
+                                st.success("✅ Conta Conectada")
+                                if st.button("🔄 Reconectar", key=f"reconnect_{idx}"):
+                                    auth_url = auth.get_google_login_url()
+                                    st.markdown(f'<a href="{auth_url}" target="_self" class="stButton">🔗 Clique aqui para Reconectar</a>', unsafe_allow_html=True)
+                            else:
+                                st.warning("⚠️ Token de acesso ausente.")
+                                auth_url = auth.get_google_login_url()
+                                st.markdown(f'<a href="{auth_url}" target="_self" style="display: inline-block; padding: 0.5em 1em; color: white; background-color: #FF4B4B; border-radius: 0.3rem; text-decoration: none;">🔗 Conectar Conta Google</a>', unsafe_allow_html=True)
+
+                            st.markdown("---")
+                            if st.button("🗑️ Remover Client Secret", key=f"del_yt_{idx}"):
                                 try:
                                     os.remove(secret_path)
                                     st.rerun()
