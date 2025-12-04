@@ -74,6 +74,7 @@ if 'logged_in' not in st.session_state or not st.session_state.logged_in:
     # Try to restore session
     if auth.check_session():
         st.session_state.logged_in = True
+        st.query_params["page"] = "home"
         # Load keys from DB
         user = auth.get_current_user()
         if user:

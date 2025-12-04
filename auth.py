@@ -165,8 +165,9 @@ def handle_oauth_callback():
                 if response.session:
                     st.session_state['supabase_session'] = response.session
                     st.session_state.logged_in = True
-                    # Clear query params to clean URL
+                    # Clear query params to clean URL then set home
                     st.query_params.clear()
+                    st.query_params["page"] = "home"
                     return True
     except Exception as e:
         st.error(f"Erro no callback de login: {e}")
