@@ -303,8 +303,10 @@ def get_authenticated_service():
     return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
 @st.cache_resource(ttl=3600)
-def get_cached_service():
-    """Cached version of get_authenticated_service to reduce auth calls."""
+def get_cached_service(user_id):
+    """Cached version of get_authenticated_service to reduce auth calls.
+    Requires user_id to ensure cache is unique per user.
+    """
     return get_authenticated_service()
 
 def load_json(filepath):
@@ -729,7 +731,10 @@ with tab1:
         if st.button("🔄 Atualizar Dados", use_container_width=True):
             st.rerun()
 
-    service = get_cached_service()
+    user = get_current_user_cached()
+    service = None
+    if user:
+        service = get_cached_service(user.id)
     
     if service:
         try:
