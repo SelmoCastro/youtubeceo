@@ -21,11 +21,11 @@ SCOPES = [
 ]
 API_SERVICE_NAME = 'youtube'
 API_VERSION = 'v3'
-LOG_FILE = 'log.txt'
+import sys
 
 # Configure Logging
 logging.basicConfig(
-    filename=LOG_FILE,
+    stream=sys.stdout,
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )

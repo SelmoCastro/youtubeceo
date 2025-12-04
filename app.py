@@ -271,27 +271,28 @@ def get_authenticated_service():
         if token_data:
             creds = Credentials.from_authorized_user_info(token_data, SCOPES)
             
-    # Fallback to local file
+    # Fallback to local file (Read-Only, for local dev)
     if not creds and os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        try:
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        except:
+            pass
     
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not os.path.exists(CLIENT_SECRETS_FILE):
-                st.error(f"File {CLIENT_SECRETS_FILE} not found.")
+            try:
+                creds.refresh(Request())
+                # Save refreshed credentials to DB
+                if user:
+                    database.save_youtube_token(user.id, json.loads(creds.to_json()))
+            except Exception as e:
+                st.error(f"Erro ao atualizar token: {e}")
                 return None
-            flow = InstalledAppFlow.from_client_secrets_file(
-                CLIENT_SECRETS_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
-            
-        # Save credentials
-        if user:
-            database.save_youtube_token(user.id, json.loads(creds.to_json()))
-            
-        with open(TOKEN_FILE, 'w') as token:
-            token.write(creds.to_json())
+        else:
+            # On Cloud, we cannot run local server. 
+            # User must authenticate via the web flow (not fully implemented here, but preventing crash).
+            st.warning("⚠️ Autenticação do YouTube necessária. Por favor, reconecte sua conta na aba de Configurações.")
+            return None
             
     return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
@@ -741,8 +742,8 @@ with tab1:
                     
                     # --- Traffic Sources Section ---
                     st.subheader("🚦 Fontes de Tráfego (Últimos 30 Dias)")
-                    creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-                    traffic_data = get_traffic_sources(creds)
+                    # Use credentials from the already authenticated service
+                    traffic_data = get_traffic_sources(service._http.credentials)
                     if traffic_data:
                         df_traffic = pd.DataFrame(traffic_data, columns=['Source', 'Views'])
                         fig_pie = px.pie(df_traffic, values='Views', names='Source', hole=0.4, template='plotly_dark')
