@@ -150,34 +150,46 @@ def _get_fixed_pkce_challenge():
 
 def get_google_login_url():
     """Returns the URL for Google OAuth login."""
-    supabase = init_supabase()
-    if not supabase:
+    # Load config to get URL/Key
+    config = load_config()
+    if not config:
+        return None
+        
+    supabase_url = config.get("supabase_url")
+    supabase_key = config.get("supabase_key")
+    
+    if not supabase_url or not supabase_key:
         return None
     
     try:
         # Use fixed challenge
         challenge = _get_fixed_pkce_challenge()
         
-        # Clean redirect URL (No parameters needed!)
-        redirect_url = os.environ.get("REDIRECT_URL", "https://youtubeceo.streamlit.app/")
-        if not redirect_url.endswith('/'):
-            redirect_url += '/'
+        # Clean redirect URL
+        base_redirect = os.environ.get("REDIRECT_URL", "https://youtubeceo.streamlit.app/")
+        if not base_redirect.endswith('/'):
+            base_redirect += '/'
             
-        st.info(f"Debug - Redirect URL: {redirect_url}") 
-        
-        # Get the URL for Google OAuth
-        data = supabase.auth.sign_in_with_oauth({
+        # Manually construct the URL to ensure full control over PKCE
+        # This bypasses any internal logic of supabase-py that might be generating random challenges
+        params = {
             "provider": "google",
-            "options": {
-                "redirectTo": redirect_url,
-                "queryParams": {
-                    "code_challenge": challenge,
-                    "code_challenge_method": "S256"
-                }
-            }
-        })
-        return data.url
-    except Exception:
+            "redirect_to": base_redirect,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256"
+        }
+        
+        # Encode params
+        import urllib.parse
+        query_string = urllib.parse.urlencode(params)
+        
+        auth_url = f"{supabase_url}/auth/v1/authorize?{query_string}"
+        
+        st.info(f"Debug - Auth URL generated manually") 
+        return auth_url
+        
+    except Exception as e:
+        st.error(f"Erro ao gerar URL: {e}")
         return None
 
 def handle_oauth_callback():
