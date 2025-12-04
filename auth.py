@@ -14,6 +14,15 @@ def init_supabase():
     
     # Try loading from config if not in env
     if not url or not key:
+        # Check Streamlit Secrets (Cloud)
+        if hasattr(st, "secrets"):
+            try:
+                url = st.secrets.get("SUPABASE_URL") or st.secrets.get("general", {}).get("SUPABASE_URL")
+                key = st.secrets.get("SUPABASE_KEY") or st.secrets.get("general", {}).get("SUPABASE_KEY")
+            except:
+                pass
+
+    if not url or not key:
         if os.path.exists(API_CONFIG_FILE):
             try:
                 with open(API_CONFIG_FILE, 'r') as f:
@@ -36,6 +45,15 @@ def is_configured():
     # Check env vars
     if os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"):
         return True
+
+    # Check Streamlit Secrets
+    if hasattr(st, "secrets"):
+        try:
+             if (st.secrets.get("SUPABASE_URL") or st.secrets.get("general", {}).get("SUPABASE_URL")) and \
+                (st.secrets.get("SUPABASE_KEY") or st.secrets.get("general", {}).get("SUPABASE_KEY")):
+                 return True
+        except:
+            pass
         
     # Check file
     if os.path.exists(API_CONFIG_FILE):
