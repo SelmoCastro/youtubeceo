@@ -1438,9 +1438,19 @@ with tab4:
                                     if vid_response['items']:
                                         snippet = vid_response['items'][0]['snippet']
                                         
+                                        # Fetch User Persona
+                                        user_persona = ""
+                                        if user:
+                                            persona_key = database.get_user_api_keys(user.id).get("Optimization_Persona", {})
+                                            user_persona = persona_key.get("api_key", "")
+                                            
                                         # Generate
                                         prompt = f"""
                                         Optimize this YouTube video metadata.
+                                        
+                                        User Persona / Channel Style Instructions:
+                                        {user_persona if user_persona else "No specific style defined. Use best practices for high CTR and engagement."}
+
                                         Title: {snippet['title']}
                                         Desc: {snippet['description']}
                                         Tags: {snippet.get('tags', [])}
@@ -1519,8 +1529,18 @@ with tab4:
                         try:
                             model_name = os.environ.get("GOOGLE_MODEL", "gemini-1.5-flash")
                             model = genai.GenerativeModel(model_name)
+                            # Fetch User Persona
+                            user = get_current_user_cached()
+                            user_persona = ""
+                            if user:
+                                persona_key = database.get_user_api_keys(user.id).get("Optimization_Persona", {})
+                                user_persona = persona_key.get("api_key", "")
+
                             prompt = f"""
                             Optimize this YouTube video metadata for better SEO, CTR, and viral potential.
+                            
+                            User Persona / Channel Style Instructions:
+                            {user_persona if user_persona else "No specific style defined. Use best practices for high CTR and engagement."}
                             
                             Current Title: {current_title}
                             Current Description: {current_desc}
@@ -1947,6 +1967,36 @@ with tab7:
                         st.error(f"Erro ao salvar no banco: {msg}")
                 else:
                     st.error("Usuário não autenticado.")
+
+    # --- AI Persona Section ---
+    st.markdown("---")
+    st.subheader("🎭 Personalização da IA")
+    st.info("Defina o estilo do seu canal para que a IA gere títulos e descrições com a sua cara!")
+    
+    # Load existing persona
+    current_persona = ""
+    if user:
+        # We reuse user_api_keys table with a special provider name
+        persona_key = database.get_user_api_keys(user.id).get("Optimization_Persona", {})
+        current_persona = persona_key.get("api_key", "") # storing style in api_key column
+
+    new_persona = st.text_area("Estilo do Canal / Instruções de Persona", 
+                               value=current_persona, 
+                               placeholder="Ex: Meu canal é focado em tutoriais rápidos e diretos. Use linguagem simples, evite clickbait exagerado. Público alvo: iniciantes em programação.",
+                               height=100)
+    
+    if st.button("💾 Salvar Persona"):
+        if user:
+            # Save to DB
+            success, msg = database.save_user_api_key(user.id, "Optimization_Persona", new_persona, "style_v1")
+            if success:
+                st.success("Persona salva com sucesso! A IA usará essas instruções nas próximas otimizações.")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error(f"Erro ao salvar: {msg}")
+        else:
+            st.error("Faça login para salvar.")
 
     st.divider()
     with st.expander("Ver Todas as Chaves Salvas (Oculto)"):
