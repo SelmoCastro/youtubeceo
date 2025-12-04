@@ -193,7 +193,8 @@ def get_google_login_url():
             "provider": "google",
             "redirect_to": base_redirect,
             "code_challenge": challenge,
-            "code_challenge_method": "S256"
+            "code_challenge_method": "S256",
+            "scopes": "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtubepartner"
         }
         
         # Encode params
