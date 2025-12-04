@@ -281,12 +281,8 @@ def get_authenticated_service():
         if token_data:
             creds = Credentials.from_authorized_user_info(token_data, SCOPES)
             
-    # Fallback to local file (Read-Only, for local dev)
-    if not creds and os.path.exists(TOKEN_FILE):
-        try:
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        except:
-            pass
+    # Fallback to local file REMOVED for cloud security/isolation
+    # if not creds and os.path.exists(TOKEN_FILE): ...
     
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -881,8 +877,8 @@ with tab2:
                 rpm = st.number_input("RPM Estimado ($)", value=1.50, step=0.10, help="Receita por 1.000 visualizações")
                 
                 # Fetch actual monthly views
-                creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-                actual_views = get_monthly_views(creds)
+                # creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES) # REMOVED
+                actual_views = get_monthly_views(service._http.credentials)
                 default_views = actual_views if actual_views > 0 else 10000
                 
                 monthly_views = st.number_input("Visualizações Mensais", value=default_views, step=1000)
