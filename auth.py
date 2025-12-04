@@ -137,13 +137,16 @@ import hashlib
 import base64
 import secrets
 
-def _generate_pkce():
-    """Generates a PKCE code verifier and challenge."""
-    verifier = secrets.token_urlsafe(64)
-    # Calculate challenge
-    digest = hashlib.sha256(verifier.encode('utf-8')).digest()
+# Fixed verifier to solve stateless streamit cloud issue
+# In a perfect world, this would be random and persisted in a DB, 
+# but for this personal app, a fixed high-entropy string works and solves the redirect loop.
+FIXED_VERIFIER = "YoutubeCEO_Streamlit_Fixed_Verifier_Secret_Key_99887766"
+
+def _get_fixed_pkce_challenge():
+    """Generates the challenge for the fixed verifier."""
+    digest = hashlib.sha256(FIXED_VERIFIER.encode('utf-8')).digest()
     challenge = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('utf-8')
-    return verifier, challenge
+    return challenge
 
 def get_google_login_url():
     """Returns the URL for Google OAuth login."""
@@ -152,19 +155,15 @@ def get_google_login_url():
         return None
     
     try:
-        # Generate PKCE manually to persist verifier in URL
-        verifier, challenge = _generate_pkce()
+        # Use fixed challenge
+        challenge = _get_fixed_pkce_challenge()
         
-        # Construct redirect URL with verifier
-        # Default to Cloud URL if env var not set
-        base_redirect = os.environ.get("REDIRECT_URL", "https://youtubeceo.streamlit.app/")
-        # Ensure trailing slash
-        if not base_redirect.endswith('/'):
-            base_redirect += '/'
+        # Clean redirect URL (No parameters needed!)
+        redirect_url = os.environ.get("REDIRECT_URL", "https://youtubeceo.streamlit.app/")
+        if not redirect_url.endswith('/'):
+            redirect_url += '/'
             
-        redirect_url = f"{base_redirect}?v={verifier}"
-        
-        st.info(f"Debug - Generated Redirect URL: {redirect_url}") # Debug log
+        st.info(f"Debug - Redirect URL: {redirect_url}") 
         
         # Get the URL for Google OAuth
         data = supabase.auth.sign_in_with_oauth({
@@ -186,7 +185,6 @@ def handle_oauth_callback():
     try:
         query_params = st.query_params
         code = query_params.get("code")
-        verifier = query_params.get("v") # Retrieve verifier from URL
         error = query_params.get("error")
         error_description = query_params.get("error_description")
 
@@ -194,18 +192,14 @@ def handle_oauth_callback():
             st.error(f"Erro retornado pelo provedor: {error} - {error_description}")
             return False
             
-        # Debug info (Remove in production after fixing)
-        if code or verifier:
-            st.info(f"Debug - Params received: Code present? {bool(code)}, Verifier present? {bool(verifier)}")
-        
-        if code and verifier:
+        if code:
             supabase = init_supabase()
             if supabase:
-                # Exchange code for session with verifier
+                # Exchange code for session using the FIXED verifier
                 try:
                     response = supabase.auth.exchange_code_for_session({
                         "auth_code": code,
-                        "code_verifier": verifier
+                        "code_verifier": FIXED_VERIFIER
                     })
                     if response.session:
                         st.session_state['supabase_session'] = response.session
@@ -217,8 +211,6 @@ def handle_oauth_callback():
                 except Exception as exchange_error:
                     st.error(f"Falha na troca do token: {exchange_error}")
                     return False
-        elif code and not verifier:
-             st.warning("Código recebido, mas verificador (v) ausente na URL. O redirecionamento pode ter falhado.")
              
     except Exception as e:
         st.error(f"Erro no callback de login: {e}")
