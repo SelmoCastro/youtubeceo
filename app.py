@@ -24,7 +24,7 @@ import auth
 import database
 import requests
 from openai import OpenAI
-from moviepy.editor import *
+# from moviepy.editor import *
 from PIL import Image, ImageDraw, ImageFont
 
 SCOPES = [
