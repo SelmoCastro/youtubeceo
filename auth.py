@@ -95,10 +95,9 @@ def login_user(email, password):
     try:
         response = supabase.auth.sign_in_with_password({"email": email, "password": password})
         
-        # Save session to file
+        # Save session to state (Per User)
         if response.session:
-            with open(SESSION_FILE, 'w') as f:
-                f.write(response.session.model_dump_json())
+            st.session_state['supabase_session'] = response.session
                 
         return True, response
     except Exception as e:
@@ -122,43 +121,17 @@ def logout_user():
     if supabase:
         supabase.auth.sign_out()
         
-    # Remove session file
-    if os.path.exists(SESSION_FILE):
-        os.remove(SESSION_FILE)
+    # Remove session from state
+    if 'supabase_session' in st.session_state:
+        del st.session_state['supabase_session']
+    if 'user' in st.session_state:
+        del st.session_state['user']
 
 def check_session():
-    """Checks if a valid session exists and restores it."""
-    if not os.path.exists(SESSION_FILE):
-        return False
-        
-    supabase = init_supabase()
-    if not supabase:
-        return False
-        
-    try:
-        with open(SESSION_FILE, 'r') as f:
-            session_data = json.load(f)
-            
-        # Restore session
-        # Supabase python client doesn't have a direct 'set_session' that takes the full object easily 
-        # without using the internal gotrue client, but we can try setting the access token if needed
-        # or just verify if the token is still valid.
-        # However, the standard way is usually to just rely on the client handling it if we could inject it,
-        # but here we might just want to return True if we have a file, 
-        # assuming the token is valid for now (or validate it).
-        
-        # Better approach: Use set_session with refresh_token if available
-        if 'refresh_token' in session_data:
-             res = supabase.auth.refresh_session(session_data['refresh_token'])
-             if res.session:
-                 # Update session file with new token
-                 with open(SESSION_FILE, 'w') as f:
-                    f.write(res.session.model_dump_json())
-                 return True
-        
-        return False
-    except Exception:
-        return False
+    """Checks if a valid session exists in state."""
+    if 'supabase_session' in st.session_state:
+        return True
+    return False
 
 def get_google_login_url():
     """Returns the URL for Google OAuth login."""
@@ -184,16 +157,12 @@ def get_authenticated_client():
     if not supabase:
         return None
         
-    if os.path.exists(SESSION_FILE):
+    if 'supabase_session' in st.session_state:
         try:
-            with open(SESSION_FILE, 'r') as f:
-                session_data = json.load(f)
-            
-            if 'access_token' in session_data and 'refresh_token' in session_data:
-                supabase.auth.set_session(session_data['access_token'], session_data['refresh_token'])
-                return supabase
+            session = st.session_state['supabase_session']
+            supabase.auth.set_session(session.access_token, session.refresh_token)
+            return supabase
         except Exception as e:
-            # print(f"Error restoring session: {e}")
             pass
     return None
 
