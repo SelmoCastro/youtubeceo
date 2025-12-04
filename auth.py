@@ -157,7 +157,11 @@ def get_google_login_url():
         
         # Construct redirect URL with verifier
         # Default to Cloud URL if env var not set
-        base_redirect = os.environ.get("REDIRECT_URL", "https://youtubeceo.streamlit.app")
+        base_redirect = os.environ.get("REDIRECT_URL", "https://youtubeceo.streamlit.app/")
+        # Ensure trailing slash
+        if not base_redirect.endswith('/'):
+            base_redirect += '/'
+            
         redirect_url = f"{base_redirect}?v={verifier}"
         
         st.info(f"Debug - Generated Redirect URL: {redirect_url}") # Debug log
