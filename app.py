@@ -1474,10 +1474,10 @@ with tab4:
                                     print(f"Erro ao otimizar {vid['id']}: {e}")
                                     
                             status_text.text("Concluído!")
-                            st.success(f"{count} sugestões geradas e enviadas para Revisão!")
-                            st.session_state.bulk_candidates = [] # Clear
-                            time.sleep(2)
-                            st.rerun()
+                            st.success(f"✅ Sucesso! {count} vídeos foram analisados e as sugestões estão prontas.")
+                            st.info("👉 Vá para a aba **'🏠 Início'** e procure por **'Revisões Pendentes'** para aprovar ou editar as sugestões antes de aplicar no YouTube.")
+                            st.session_state.bulk_candidates = [] # Clear list to prevent re-submission
+                            # Removed st.rerun() to let user see the message
 
             # End of Bulk Mode Logic
             selected_video_id = None # Reset if in bulk mode to avoid rendering single video UI below
@@ -1596,10 +1596,19 @@ with tab4:
                     if st.button("✅ Aplicar Mudanças no YouTube"):
                         if update_video_on_youtube(service, selected_video_id, new_opt_title, new_opt_desc, [t.strip() for t in new_opt_tags.split(',')]):
                             st.balloons()
-                            st.success("Vídeo atualizado com sucesso!")
-                            st.session_state.opt_suggestions = {} # Clear
-                            time.sleep(2)
-                            st.rerun()
+                            st.success("✅ Vídeo atualizado com sucesso no YouTube!")
+                            st.info("As alterações já estão visíveis no seu canal.")
+                            
+                            # Update History in DB (Optional but good practice)
+                            user = get_current_user_cached()
+                            if user:
+                                database.add_optimization_history(user.id, selected_video_id, new_opt_title, "manual_ai", {"timestamp": datetime.datetime.now().isoformat()})
+
+                            # Clear suggestions but keep success message visible
+                            st.session_state.opt_suggestions = {} 
+                            
+                            if st.button("🔄 Otimizar Outro Vídeo"):
+                                st.rerun()
 
 # --- Tab 5: Pending Reviews ---
 with tab5:
