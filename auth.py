@@ -151,6 +151,27 @@ def get_google_login_url():
     except Exception:
         return None
 
+def handle_oauth_callback():
+    """Handles the OAuth callback from Supabase/Google."""
+    try:
+        query_params = st.query_params
+        code = query_params.get("code")
+        
+        if code:
+            supabase = init_supabase()
+            if supabase:
+                # Exchange code for session
+                response = supabase.auth.exchange_code_for_session({"auth_code": code})
+                if response.session:
+                    st.session_state['supabase_session'] = response.session
+                    st.session_state.logged_in = True
+                    # Clear query params to clean URL
+                    st.query_params.clear()
+                    return True
+    except Exception as e:
+        st.error(f"Erro no callback de login: {e}")
+    return False
+
 def get_authenticated_client():
     """Returns a Supabase client with the active session set."""
     supabase = init_supabase()

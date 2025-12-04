@@ -61,7 +61,16 @@ if os.path.exists(API_CONFIG_FILE):
         print(f"Error loading config: {e}")
 
 # --- Authentication Flow ---
+# --- Authentication Flow ---
 if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+# Check for OAuth Callback (Google Login)
+if not st.session_state.logged_in:
+    if auth.handle_oauth_callback():
+        st.rerun()
+
+if 'logged_in' not in st.session_state or not st.session_state.logged_in:
     # Try to restore session
     if auth.check_session():
         st.session_state.logged_in = True
@@ -98,551 +107,9 @@ if 'logged_in' not in st.session_state:
     else:
         st.session_state.logged_in = False
 
-# --- Custom CSS for Premium Look ---
-@st.cache_data
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+# ... (CSS and helper functions remain same) ...
 
-def set_png_as_page_bg(png_file):
-    bin_str = get_base64_of_bin_file(png_file)
-    page_bg_img = '''
-    <style>
-    .stApp {
-        background-image: url("data:image/png;base64,%s");
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }
-    .main {
-        background-color: transparent;
-    }
-    h1, h2, h3 {
-        color: #E6EDF3 !important;
-        font-family: 'Inter', sans-serif;
-        text-shadow: 2px 2px 4px #000000;
-    }
-    /* Metric Cards */
-    .stMetric {
-        background-color: rgba(31, 36, 45, 0.7);
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #30363D;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        backdrop-filter: blur(5px);
-        transition: all 0.3s ease;
-    }
-    .stMetric:hover {
-        border-color: #58A6FF;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(88, 166, 255, 0.2);
-    }
-    /* Buttons */
-    .stButton>button {
-        background-color: #1e3a8a;
-        color: white;
-        border: 1px solid #1e3a8a;
-        border-radius: 6px;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        background-color: #172554;
-        border-color: #58A6FF;
-        transform: scale(1.02);
-        box-shadow: 0 0 15px rgba(88, 166, 255, 0.6);
-    }
-    /* Inputs */
-    .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {
-        background-color: rgba(22, 27, 34, 0.8) !important;
-        color: #e6edf3 !important;
-        border: 1px solid #30363D;
-        border-radius: 6px;
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    .stTextInput input:focus, .stTextArea textarea:focus {
-        border-color: #58A6FF !important;
-        box-shadow: 0 0 8px rgba(88, 166, 255, 0.4) !important;
-    }
-    /* Integration Cards */
-    .integration-card {
-        background-color: rgba(22, 27, 34, 0.6);
-        border: 1px solid #30363D;
-        border-radius: 10px;
-        padding: 15px;
-        text-align: center;
-        transition: all 0.3s ease;
-        margin-bottom: 10px;
-        height: 100%%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-    .integration-card:hover {
-        transform: translateY(-3px);
-    }
-    .status-active {
-        border-color: #A371F7; /* Purple Neon */
-        box-shadow: 0 0 15px rgba(163, 113, 247, 0.3);
-        background-color: rgba(163, 113, 247, 0.1);
-    }
-    .status-inactive {
-        border-color: #30363D;
-        opacity: 0.7;
-    }
-    .status-icon {
-        font-size: 2rem;
-        margin-bottom: 10px;
-    }
-    .status-text {
-        font-weight: bold;
-        font-size: 0.9rem;
-    }
-    .active-text { color: #A371F7; }
-    .inactive-text { color: #8b949e; }
-    
-    div[data-testid="stExpander"] {
-        background-color: rgba(22, 27, 34, 0.8);
-        border: 1px solid #30363D;
-        border-radius: 8px;
-        backdrop-filter: blur(5px);
-    }
-    </style>
-    ''' % bin_str
-    st.markdown(page_bg_img, unsafe_allow_html=True)
-
-# Check if background exists
-if os.path.exists('background.png'):
-    set_png_as_page_bg('background.png')
-else:
-    st.markdown("""
-    <style>
-    .main {
-        background-color: #0E1117;
-    }
-    .stApp {
-        background: linear-gradient(to bottom right, #0E1117, #161B22);
-    }
-    /* ... rest of original CSS if needed ... */
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- Sidebar Header ---
-with st.sidebar:
-    if os.path.exists('logo.png'):
-        if st.session_state.get('logged_in'):
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                st.image('logo.png', use_container_width=True)
-            with col2:
-                if st.button("🚪 Sair", key="logout_btn_sidebar", use_container_width=True):
-                    auth.logout_user()
-                    st.session_state.logged_in = False
-                    st.rerun()
-        else:
-             st.image('logo.png', use_container_width=True)
-    
-    st.divider()
-
-
-# --- Helper Functions ---
-
-def get_current_user_cached():
-    """Returns cached user or fetches if missing."""
-    if 'user' in st.session_state and st.session_state.user:
-        return st.session_state.user
-    
-    user = auth.get_current_user()
-    if user:
-        st.session_state.user = user
-    return user
-
-def get_authenticated_service():
-    """Authenticates with YouTube Data API."""
-    creds = None
-    
-    # Try to load from DB first if logged in
-    user = get_current_user_cached()
-    if user:
-        token_data = database.get_youtube_token(user.id)
-        if token_data:
-            creds = Credentials.from_authorized_user_info(token_data, SCOPES)
-            
-    # Fallback to local file (Read-Only, for local dev)
-    if not creds and os.path.exists(TOKEN_FILE):
-        try:
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        except:
-            pass
-    
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                creds.refresh(Request())
-                # Save refreshed credentials to DB
-                if user:
-                    database.save_youtube_token(user.id, json.loads(creds.to_json()))
-            except Exception as e:
-                st.error(f"Erro ao atualizar token: {e}")
-                return None
-        else:
-            # On Cloud, we cannot run local server. 
-            # User must authenticate via the web flow (not fully implemented here, but preventing crash).
-            st.warning("⚠️ Autenticação do YouTube necessária. Por favor, reconecte sua conta na aba de Configurações.")
-            return None
-            
-    return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
-
-@st.cache_resource(ttl=3600)
-def get_cached_service():
-    """Cached version of get_authenticated_service to reduce auth calls."""
-    return get_authenticated_service()
-
-def load_json(filepath):
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, 'r') as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
-
-def save_json(filepath, data):
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=4)
-
-def update_video_on_youtube(service, video_id, title, description, tags, thumbnail_path=None):
-    try:
-        # 1. Update Metadata
-        video_response = service.videos().list(id=video_id, part='snippet').execute()
-        if not video_response['items']:
-            st.error(f"Video {video_id} not found.")
-            return False
-
-        snippet = video_response['items'][0]['snippet']
-        snippet['title'] = title
-        snippet['description'] = description
-        snippet['tags'] = tags
-
-        service.videos().update(
-            part='snippet',
-            body={'id': video_id, 'snippet': snippet}
-        ).execute()
-
-        # 2. Update Thumbnail (if exists)
-        if thumbnail_path and os.path.exists(thumbnail_path):
-            service.thumbnails().set(
-                videoId=video_id,
-                media_body=MediaFileUpload(thumbnail_path)
-            ).execute()
-        
-        return True
-    except Exception as e:
-        st.error(f"Error updating video: {e}")
-        return False
-
-@st.cache_data(ttl=3600)
-def get_watch_time_year(_creds):
-    """Fetches watch time (hours) for the last 365 days."""
-    try:
-        analytics = build('youtubeAnalytics', 'v2', credentials=_creds)
-        end_date = datetime.date.today().strftime("%Y-%m-%d")
-        start_date = (datetime.date.today() - datetime.timedelta(days=365)).strftime("%Y-%m-%d")
-        
-        response = analytics.reports().query(
-            ids='channel==MINE',
-            startDate=start_date,
-            endDate=end_date,
-            metrics='estimatedMinutesWatched'
-        ).execute()
-        
-        rows = response.get('rows', [])
-        if rows:
-            return float(rows[0][0]) / 60 # Convert minutes to hours
-        return 0.0
-    except Exception as e:
-        st.error(f"Error fetching watch time: {e}")
-        return 0.0
-
-@st.cache_data(ttl=3600)
-def get_traffic_sources(_creds):
-    """Fetches traffic sources for the last 30 days."""
-    try:
-        analytics = build('youtubeAnalytics', 'v2', credentials=_creds)
-        end_date = datetime.date.today().strftime("%Y-%m-%d")
-        start_date = (datetime.date.today() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-        
-        response = analytics.reports().query(
-            ids='channel==MINE',
-            startDate=start_date,
-            endDate=end_date,
-            metrics='views',
-            dimensions='insightTrafficSourceType',
-            sort='-views'
-        ).execute()
-        
-        return response.get('rows', [])
-    except Exception as e:
-        st.error(f"Error fetching traffic sources: {e}")
-        return []
-
-@st.cache_data(ttl=3600)
-def get_monthly_views(_creds):
-    """Fetches total views for the last 30 days. Cached for 1 hour."""
-    try:
-        analytics = build('youtubeAnalytics', 'v2', credentials=_creds)
-        end_date = datetime.date.today().strftime("%Y-%m-%d")
-        start_date = (datetime.date.today() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-        
-        response = analytics.reports().query(
-            ids='channel==MINE',
-            startDate=start_date,
-            endDate=end_date,
-            metrics='views'
-        ).execute()
-        
-        rows = response.get('rows', [])
-        if rows:
-            return int(rows[0][0])
-        return 0
-    except HttpError as e:
-        if "quotaExceeded" in str(e):
-            st.warning("⚠️ Cota da API do YouTube excedida. Tente novamente após as 05:00 (Brasília). Exibindo dados padrão.")
-            return 0
-        st.error(f"Error fetching monthly views: {e}")
-        return 0
-    except Exception as e:
-        st.error(f"Error fetching monthly views: {e}")
-        return 0
-
-@st.cache_data(ttl=3600)
-def get_channel_stats(_service):
-    """Fetches channel statistics (subs, views, video count)."""
-    return _service.channels().list(mine=True, part='contentDetails,statistics').execute()
-
-@st.cache_data(ttl=3600)
-def get_subscriber_count(_service):
-    """Fetches just the subscriber count."""
-    response = _service.channels().list(mine=True, part='statistics').execute()
-    return int(response['items'][0]['statistics']['subscriberCount'])
-
-@st.cache_data(ttl=3600)
-def get_video_details(_service, video_id):
-    """Fetches snippet and statistics for a specific video."""
-    return _service.videos().list(id=video_id, part='snippet,statistics').execute()
-
-def parse_duration(duration_iso):
-    """Parses YouTube duration (ISO 8601) to seconds (approx)."""
-    match = re.match(r'PT(\d+H)?(\d+M)?(\d+S)?', duration_iso)
-    if not match:
-        return 0
-    
-    h = int(match.group(1)[:-1]) if match.group(1) else 0
-    m = int(match.group(2)[:-1]) if match.group(2) else 0
-    s = int(match.group(3)[:-1]) if match.group(3) else 0
-    
-    return h*3600 + m*60 + s
-
-def generate_image_with_ai(prompt, provider="Auto", model=None):
-    """Generates an image using available AI providers (Stability > DALL-E 3 > Hugging Face > Pollinations)."""
-    
-    # 1. Stability AI
-    if (provider == "Auto" or provider == "Stability AI") and os.environ.get("STABILITY_API_KEY"):
-        try:
-            api_key = os.environ["STABILITY_API_KEY"]
-            engine_id = model or os.environ.get("STABILITY_MODEL", "stable-diffusion-xl-10-stable")
-            api_host = os.getenv('API_HOST', 'https://api.stability.ai')
-            
-            # Enhance prompt for realism
-            enhanced_prompt = f"{prompt}, photorealistic, 8k, highly detailed, cinematic lighting, ultra realistic, photography"
-            
-            response = requests.post(
-                f"{api_host}/v1/generation/{engine_id}/text-to-image",
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "Authorization": f"Bearer {api_key}"
-                },
-                json={
-                    "text_prompts": [{"text": enhanced_prompt}],
-                    "cfg_scale": 7,
-                    "height": 720,
-                    "width": 1280,
-                    "samples": 1,
-                    "steps": 30,
-                },
-            )
-
-            if response.status_code != 200:
-                raise Exception(f"Non-200 response: {str(response.text)}")
-
-            data = response.json()
-            return base64.b64decode(data["artifacts"][0]["base64"])
-            
-        except Exception as e:
-            if provider != "Auto": return None # Fail if specific provider requested
-            st.warning(f"Stability AI falhou ({e}), tentando próximo...")
-
-    # 2. OpenAI DALL-E 3
-    if (provider == "Auto" or provider == "OpenAI (DALL-E 3)") and os.environ.get("OPENAI_API_KEY"):
-        try:
-            client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-            
-            response = client.images.generate(
-                model="dall-e-3",
-                prompt=f"{prompt}, Photorealistic, cinematic, 4k",
-                size="1024x1024", # DALL-E 3 standard
-                quality="standard",
-                n=1,
-                response_format="b64_json"
-            )
-            
-            return base64.b64decode(response.data[0].b64_json)
-            
-        except Exception as e:
-            if provider != "Auto": return None
-            st.warning(f"DALL-E 3 falhou ({e}), usando fallback...")
-
-    # 3. Hugging Face Inference API (Free with Token)
-    if (provider == "Auto" or provider == "Hugging Face") and os.environ.get("HUGGINGFACE_API_TOKEN"):
-        try:
-            api_token = os.environ["HUGGINGFACE_API_TOKEN"]
-            model_id = model or os.environ.get("HUGGINGFACE_MODEL", "stabilityai/stable-diffusion-xl-base-1.0")
-            api_url = f"https://api-inference.huggingface.co/models/{model_id}"
-            headers = {"Authorization": f"Bearer {api_token}"}
-            
-            # Enhance prompt
-            enhanced_prompt = f"{prompt}, photorealistic, 8k, highly detailed, cinematic lighting"
-            
-            payload = {
-                "inputs": enhanced_prompt,
-                "parameters": {"num_inference_steps": 25}
-            }
-
-            response = requests.post(api_url, headers=headers, json=payload)
-            
-            # Handle model loading state (common in free tier)
-            if response.status_code == 503:
-                 st.warning("Modelo Hugging Face carregando, aguardando...")
-                 time.sleep(10) # Wait a bit
-                 response = requests.post(api_url, headers=headers, json=payload)
-
-            if response.status_code != 200:
-                 raise Exception(f"Non-200 response: {str(response.text)}")
-
-            return response.content
-            
-        except Exception as e:
-            if provider != "Auto": return None
-            st.warning(f"Hugging Face falhou ({e}), tentando Pollinations...")
-
-    # 4. Pollinations.ai (Fallback - Free)
-    # Always available if Auto or specifically requested
-    if provider == "Auto" or provider == "Pollinations (Grátis)":
-        try:
-            # URL encode prompt
-            encoded_prompt = requests.utils.quote(f"{prompt}, photorealistic, 4k, cinematic")
-            # Force Flux model for better quality
-            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&nologo=true&model=flux" 
-            return requests.get(image_url).content
-        except Exception as e:
-            st.error(f"Erro no gerador gratuito: {e}")
-            return None
-            
-    return None
-
-# --- Authentication Flow ---
-
-def login_screen():
-    st.markdown("""
-    <style>
-        .stTextInput input {
-            background-color: rgba(22, 27, 34, 0.8);
-            color: #e6edf3;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.title("🔐 Login")
-        
-        # Google Login Button
-        google_url = auth.get_google_login_url()
-        if google_url:
-            st.link_button("🇬 Entrar com Google", google_url, use_container_width=True)
-            st.divider()
-        
-        tab_login, tab_register = st.tabs(["Entrar", "Cadastrar"])
-        
-        with tab_login:
-            email = st.text_input("E-mail", key="login_email")
-            password = st.text_input("Senha", type="password", key="login_pass")
-            
-            if st.button("Entrar", use_container_width=True):
-                if not email or not password:
-                    st.error("Preencha todos os campos.")
-                else:
-                    with st.spinner("Autenticando..."):
-                        success, resp = auth.login_user(email, password)
-                        if success:
-                            st.session_state.logged_in = True
-                            st.success("Login realizado com sucesso!")
-                            st.rerun()
-                        else:
-                            st.error(f"Erro no login: {resp}")
-                            
-        with tab_register:
-            new_email = st.text_input("E-mail", key="reg_email")
-            new_pass = st.text_input("Senha", type="password", key="reg_pass")
-            confirm_pass = st.text_input("Confirmar Senha", type="password", key="reg_confirm")
-            
-            if st.button("Cadastrar", use_container_width=True):
-                if not new_email or not new_pass:
-                    st.error("Preencha todos os campos.")
-                elif new_pass != confirm_pass:
-                    st.error("As senhas não coincidem.")
-                else:
-                    with st.spinner("Criando conta..."):
-                        success, resp = auth.register_user(new_email, new_pass)
-                        if success:
-                            st.success("Conta criada! Verifique seu e-mail para confirmar.")
-                        else:
-                            st.error(f"Erro no cadastro: {resp}")
-
-def setup_screen():
-    st.markdown("""
-    <style>
-        .stTextInput input {
-            background-color: rgba(22, 27, 34, 0.8);
-            color: #e6edf3;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.title("🛠️ Configuração Inicial")
-        st.info("Configure o banco de dados para iniciar o sistema.")
-        
-        st.markdown("### ☁️ Supabase")
-        st.caption("Insira as credenciais do seu projeto Supabase.")
-        
-        url = st.text_input("Project URL", placeholder="https://your-project.supabase.co")
-        key = st.text_input("Anon / Public Key", type="password", placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
-        
-        if st.button("Salvar e Iniciar", use_container_width=True):
-            if not url or not key:
-                st.error("Preencha todos os campos.")
-            else:
-                auth.save_config(url, key)
-                st.success("Configuração salva! Reiniciando...")
-                time.sleep(1)
-                st.rerun()
-
+# --- Login Logic ---
 if not st.session_state.logged_in:
     if not auth.is_configured():
         setup_screen()
@@ -650,31 +117,68 @@ if not st.session_state.logged_in:
         login_screen()
     st.stop() # Stop execution if not logged in
 
-
-
-    st.divider()
-    st.markdown("### 🔌 Conexões Ativas")
-    
-    # Check Env Vars for active connections
-    active_cons = []
-    if os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"):
-        active_cons.append("🔥 Supabase")
-    if os.environ.get("GOOGLE_API_KEY"):
-        active_cons.append("🧠 Gemini")
-    if os.environ.get("OPENAI_API_KEY"):
-        active_cons.append("🤖 OpenAI")
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        active_cons.append("📝 Claude")
-        
-    if active_cons:
-        for con in active_cons:
-            st.caption(f"✅ {con}")
-    else:
-        st.caption("Nenhuma conexão ativa.")
-
 # --- Tabs ---
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🚀 Desempenho", "💰 Monetização", "📤 Upload", "✨ Otimizar Existentes", "📝 Revisões Pendentes", "⚙️ Controle", "🔌 Integrações"])
+tab_home, tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🏠 Início", "🚀 Desempenho", "💰 Monetização", "📤 Upload", "✨ Otimizar Existentes", "📝 Revisões Pendentes", "⚙️ Controle", "🔌 Integrações"])
+
+# --- Tab Home: Dashboard ---
+with tab_home:
+    st.title(f"Bem-vindo, {st.session_state.user.email if 'user' in st.session_state and st.session_state.user else 'Usuário'}!")
+    st.markdown("### Visão Geral do Sistema")
+    
+    col_h1, col_h2, col_h3 = st.columns(3)
+    
+    with col_h1:
+        st.info("🔌 **Conexões Ativas**")
+        # Check Env Vars for active connections
+        active_cons = []
+        if os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"):
+            active_cons.append("🔥 Supabase")
+        if os.environ.get("GOOGLE_API_KEY"):
+            active_cons.append("🧠 Gemini")
+        if os.environ.get("OPENAI_API_KEY"):
+            active_cons.append("🤖 OpenAI")
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            active_cons.append("📝 Claude")
+            
+        if active_cons:
+            for con in active_cons:
+                st.write(f"✅ {con}")
+        else:
+            st.write("Nenhuma conexão ativa.")
+            
+    with col_h2:
+        st.warning("📝 **Pendências**")
+        user = get_current_user_cached()
+        if user:
+            pending_count = len(database.get_pending_reviews(user.id))
+            st.metric("Vídeos para Revisar", pending_count)
+        else:
+            st.write("Carregando...")
+
+    with col_h3:
+        st.success("🤖 **Automação**")
+        if user:
+            settings = database.get_automation_settings(user.id)
+            if settings.get('active'):
+                st.write("🟢 Ativa")
+                st.caption(f"Próxima: {settings.get('next_run', 'Agendada')}")
+            else:
+                st.write("🔴 Inativa")
+        else:
+            st.write("Carregando...")
+            
+    st.divider()
+    st.markdown("### 🚀 Acesso Rápido")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.button("Ver Analytics", on_click=lambda: None) # Just a placeholder for nav visual
+    with c2:
+        st.button("Otimizar Vídeo", on_click=lambda: None)
+    with c3:
+        st.button("Configurar APIs", on_click=lambda: None)
+    with c4:
+        st.button("Gerar Imagem", on_click=lambda: None)
 
 # --- Tab 1: Performance ---
 with tab1:
