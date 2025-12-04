@@ -658,7 +658,13 @@ if not st.session_state.logged_in:
 
 # --- Tabs ---
 
-tab_home, tab1, tab2, tab3, tab4, tab5, tab7 = st.tabs(["🏠 Início", "🚀 Desempenho", "💰 Monetização", "📤 Upload", "✨ Otimizar Existentes", "📝 Revisões Pendentes", "🔌 Integrações"])
+# --- Session State Init ---
+if 'session_history' not in st.session_state:
+    st.session_state.session_history = []
+
+# --- Tabs ---
+
+tab_home, tab1, tab2, tab3, tab4, tab5, tab_report, tab7 = st.tabs(["🏠 Início", "🚀 Desempenho", "💰 Monetização", "📤 Upload", "✨ Otimizar Existentes", "📝 Revisões Pendentes", "📋 Relatório", "🔌 Integrações"])
 
 # --- Tab Home: Dashboard ---
 with tab_home:
@@ -1468,6 +1474,14 @@ with tab4:
                                                 suggestions.get('title'), suggestions.get('description'), 
                                                 suggestions.get('tags'), None
                                             )
+                                            
+                                            # Log to Session History
+                                            st.session_state.session_history.append({
+                                                "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+                                                "old_title": snippet['title'],
+                                                "new_title": suggestions.get('title'),
+                                                "status": "pending_review"
+                                            })
                                     count += 1
                                     progress_bar.progress(count / len(st.session_state.bulk_candidates))
                                 except Exception as e:
@@ -1604,11 +1618,16 @@ with tab4:
                             if user:
                                 database.add_optimization_history(user.id, selected_video_id, new_opt_title, "manual_ai", {"timestamp": datetime.datetime.now().isoformat()})
 
+                            # Add to Session History
+                            st.session_state.session_history.append({
+                                "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+                                "old_title": current_title,
+                                "new_title": new_opt_title,
+                                "status": "success"
+                            })
+
                             # Clear suggestions but keep success message visible
-                            st.session_state.opt_suggestions = {} 
-                            
-                            if st.button("🔄 Otimizar Outro Vídeo"):
-                                st.rerun()
+                            st.session_state.opt_suggestions = {}
 
 # --- Tab 5: Pending Reviews ---
 with tab5:
@@ -1696,6 +1715,34 @@ def fetch_openai_models(api_key):
         return []
     except Exception:
         return []
+
+# --- Tab Report: Session History ---
+with tab_report:
+    st.title("📋 Relatório da Sessão")
+    st.caption("Histórico temporário das otimizações realizadas nesta sessão.")
+    
+    if not st.session_state.session_history:
+        st.info("Nenhuma otimização realizada nesta sessão ainda.")
+    else:
+        if st.button("🗑️ Limpar Histórico"):
+            st.session_state.session_history = []
+            st.rerun()
+            
+        # Reverse to show newest first
+        for item in reversed(st.session_state.session_history):
+            with st.container(border=True):
+                col_r1, col_r2 = st.columns([3, 1])
+                with col_r1:
+                    st.markdown(f"**De:** {item['old_title']}")
+                    st.markdown(f"**Para:** {item['new_title']}")
+                with col_r2:
+                    if item['status'] == 'success':
+                        st.success("✅ Sucesso")
+                    elif item['status'] == 'pending_review':
+                        st.warning("📝 Em Revisão")
+                    else:
+                        st.error("❌ Falha")
+                st.caption(f"🕒 {item['timestamp']}")
 
 # --- Tab 7: Integrations ---
 with tab7:
