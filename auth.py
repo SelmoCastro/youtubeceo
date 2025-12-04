@@ -202,7 +202,6 @@ def get_google_login_url():
         
         auth_url = f"{supabase_url}/auth/v1/authorize?{query_string}"
         
-        st.info(f"Debug - Auth URL generated manually") 
         return auth_url
         
     except Exception as e:
