@@ -180,22 +180,39 @@ def handle_oauth_callback():
         query_params = st.query_params
         code = query_params.get("code")
         verifier = query_params.get("v") # Retrieve verifier from URL
+        error = query_params.get("error")
+        error_description = query_params.get("error_description")
+
+        if error:
+            st.error(f"Erro retornado pelo provedor: {error} - {error_description}")
+            return False
+            
+        # Debug info (Remove in production after fixing)
+        if code or verifier:
+            st.info(f"Debug - Params received: Code present? {bool(code)}, Verifier present? {bool(verifier)}")
         
         if code and verifier:
             supabase = init_supabase()
             if supabase:
                 # Exchange code for session with verifier
-                response = supabase.auth.exchange_code_for_session({
-                    "auth_code": code,
-                    "code_verifier": verifier
-                })
-                if response.session:
-                    st.session_state['supabase_session'] = response.session
-                    st.session_state.logged_in = True
-                    # Clear query params to clean URL then set home
-                    st.query_params.clear()
-                    st.query_params["page"] = "home"
-                    return True
+                try:
+                    response = supabase.auth.exchange_code_for_session({
+                        "auth_code": code,
+                        "code_verifier": verifier
+                    })
+                    if response.session:
+                        st.session_state['supabase_session'] = response.session
+                        st.session_state.logged_in = True
+                        # Clear query params to clean URL then set home
+                        st.query_params.clear()
+                        st.query_params["page"] = "home"
+                        return True
+                except Exception as exchange_error:
+                    st.error(f"Falha na troca do token: {exchange_error}")
+                    return False
+        elif code and not verifier:
+             st.warning("Código recebido, mas verificador (v) ausente na URL. O redirecionamento pode ter falhado.")
+             
     except Exception as e:
         st.error(f"Erro no callback de login: {e}")
     return False
