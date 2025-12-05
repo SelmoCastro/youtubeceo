@@ -1560,129 +1560,163 @@ if 'session_history' not in st.session_state:
 def apply_custom_style():
 
     st.markdown("""
-
     <style>
+        /* Import Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        /* Main Background & Text */
+        /* Global Variables */
+        :root {
+            --bg-color: #020617; /* Slate-950 */
+            --card-bg: rgba(15, 23, 42, 0.6); /* Slate-900 with opacity */
+            --sidebar-bg: rgba(2, 6, 23, 0.8);
+            --text-primary: #f8fafc; /* Slate-50 */
+            --text-secondary: #94a3b8; /* Slate-400 */
+            --accent-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); /* Blue to Violet */
+            --border-color: rgba(30, 41, 59, 0.5); /* Slate-800 */
+        }
 
+        /* Main App Background */
         .stApp {
-
-            background: linear-gradient(to bottom right, #0e1117, #1a1c24);
-
-            color: #ffffff;
-
+            background-color: var(--bg-color);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
         }
 
-        
-
-        /* Sidebar */
-
+        /* Sidebar Styling */
         [data-testid="stSidebar"] {
-
-            background-color: #13151a;
-
-            border-right: 1px solid #2d3035;
-
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+        }
+        
+        /* Remove default top padding */
+        .block-container {
+            padding-top: 2rem;
         }
 
+        /* Custom Metric Card Class */
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
         
-
-        /* Cards (Containers) */
-
-        [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
-
-            background-color: #1e2127;
-
-            border: 1px solid #2d3035;
-
-            border-radius: 10px;
-
-            padding: 15px;
-
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-
+        .metric-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.2);
+            transform: translateY(-2px);
         }
 
-        
+        .metric-title {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-value {
+            color: var(--text-primary);
+            font-size: 1.875rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 4px;
+        }
+
+        .metric-sub {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Integration Card Class */
+        .integration-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .integration-card:hover {
+            border-color: var(--hover-color, #3b82f6);
+            background: rgba(15, 23, 42, 0.8);
+        }
 
         /* Buttons */
-
         .stButton > button {
-
-            background: linear-gradient(90deg, #FF4B4B 0%, #FF914D 100%);
-
+            background: var(--accent-gradient);
             color: white;
-
             border: none;
-
-            border-radius: 8px;
-
-            font-weight: bold;
-
-            transition: all 0.3s ease;
-
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
         }
-
-        .stButton > button:hover {
-
-            transform: translateY(-2px);
-
-            box-shadow: 0 4px 12px rgba(255, 75, 75, 0.3);
-
-        }
-
         
+        .stButton > button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
 
         /* Inputs */
-
-        .stTextInput > div > div > input, .stTextArea > div > div > textarea {
-
-            background-color: #262730;
-
+        .stTextInput > div > div > input {
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
             color: white;
-
-            border: 1px solid #41444C;
-
-            border-radius: 8px;
-
+            border-radius: 12px;
         }
-
         
+        .stTextInput > div > div > input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
 
         /* Headers */
-
         h1, h2, h3 {
-
-            font-family: 'Inter', sans-serif;
-
+            color: white !important;
             font-weight: 700;
-
-            background: -webkit-linear-gradient(45deg, #ffffff, #a0a0a0);
-
-            -webkit-background-clip: text;
-
-            -webkit-text-fill-color: transparent;
-
+            letter-spacing: -0.025em;
         }
-
         
+        /* Hide default Streamlit elements if needed */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
 
-        /* Custom Metrics */
-
-        div[data-testid="metric-container"] {
-
-            background-color: #262730;
-
-            padding: 10px;
-
+        /* Sidebar Navigation (Radio) */
+        div[role="radiogroup"] label {
+            background-color: transparent;
+            border: 1px solid transparent;
             border-radius: 8px;
-
-            border: 1px solid #2d3035;
-
+            padding: 8px 12px;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
         }
-
+        
+        div[role="radiogroup"] label:hover {
+            background-color: rgba(30, 41, 59, 0.5);
+            color: white;
+        }
+        
+        /* Active State (approximate, depends on Streamlit version) */
+        div[role="radiogroup"] label[data-baseweb="radio"] {
+             /* This targets the container */
+        }
+        
+        /* Target the selected radio button text */
+        div[role="radiogroup"] label p {
+            font-weight: 500;
+        }
+        
     </style>
-
     """, unsafe_allow_html=True)
 
 
@@ -1751,6 +1785,27 @@ def render_home():
 
     st.title("🏠 Dashboard Principal")
 
+def render_metric_card(title, value, sub_value, progress_percent):
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="metric-title">
+            {title}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        </div>
+        <div class="metric-value">{value}</div>
+        <div class="metric-sub">{sub_value}</div>
+        <div style="margin-top: 12px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">
+                <span>Progresso</span>
+                <span>{progress_percent}%</span>
+            </div>
+            <div style="width: 100%; background-color: rgba(30, 41, 59, 0.5); border-radius: 9999px; height: 6px; overflow: hidden;">
+                <div style="width: {progress_percent}%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 9999px;"></div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     user = get_current_user_cached()
 
     
@@ -1764,24 +1819,15 @@ def render_home():
 
 
     # Quick Stats (Mockup for now, can be real later)
-
     col1, col2, col3, col4 = st.columns(4)
-
     with col1:
-
-        st.metric("Inscritos", "12.5K", "+120")
-
+        render_metric_card("Inscritos", "12.5K", "+120 essa semana", 65)
     with col2:
-
-        st.metric("Visualizações (28d)", "450K", "+15%")
-
+        render_metric_card("Visualizações (28d)", "450K", "+15% vs mês anterior", 95)
     with col3:
-
-        st.metric("Receita Est.", "R$ 1.2K", "+5%")
-
+        render_metric_card("Receita Est.", "R$ 1.2K", "+5%", 40)
     with col4:
-
-        st.metric("Vídeos Otimizados", "8", "+2")
+        render_metric_card("Vídeos Otimizados", "8", "2 pendentes", 75)
 
         
 
@@ -3956,131 +4002,6 @@ def render_integrations():
         except:
 
             pass
-
-            
-
-    # API Providers Definition
-
-    PROVIDERS = {
-
-        "Supabase Auth": {
-
-            "env_var": "SUPABASE_URL",
-
-            "key_var": "SUPABASE_KEY",
-
-            "help": "URL e Key do projeto Supabase para autenticação.",
-
-            "icon": "🔥",
-
-            "models": []
-
-        },
-
-        "Google Gemini": {
-
-            "env_var": "GOOGLE_API_KEY",
-
-            "model_var": "GOOGLE_MODEL",
-
-            "help": "Necessário para análise e otimização com IA.",
-
-            "icon": "🧠",
-
-            "models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
-
-        },
-
-        "OpenAI (ChatGPT)": {
-
-            "env_var": "OPENAI_API_KEY",
-
-            "model_var": "OPENAI_MODEL",
-
-            "help": "Para recursos futuros com GPT-4.",
-
-            "icon": "🤖",
-
-            "models": ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
-
-        },
-
-        "Anthropic (Claude)": {
-
-            "env_var": "ANTHROPIC_API_KEY",
-
-            "model_var": "ANTHROPIC_MODEL",
-
-            "help": "Modelo de IA alternativo.",
-
-            "icon": "📝",
-
-            "models": ["claude-3-5-sonnet-20240620", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
-
-        },
-
-        "Stability AI": {
-
-            "env_var": "STABILITY_API_KEY",
-
-            "model_var": "STABILITY_MODEL",
-
-            "help": "Para geração de imagens.",
-
-            "icon": "🎨",
-
-            "models": ["stable-diffusion-xl-1.0", "stable-diffusion-v1-6"]
-
-        },
-
-        "Hugging Face": {
-
-            "env_var": "HUGGINGFACE_API_TOKEN",
-
-            "model_var": "HUGGINGFACE_MODEL",
-
-            "help": "Opção gratuita para geração de imagens (Requer Token).",
-
-            "icon": "🤗",
-
-            "models": ["black-forest-labs/FLUX.1-dev", "stabilityai/stable-diffusion-xl-base-1.0", "runwayml/stable-diffusion-v1-5"]
-
-        },
-
-        "ElevenLabs": {
-
-            "env_var": "ELEVENLABS_API_KEY",
-
-            "model_var": "ELEVENLABS_MODEL",
-
-            "help": "Para geração de voz com IA.",
-
-            "icon": "🗣️",
-
-            "models": ["eleven_multilingual_v2", "eleven_monolingual_v1"]
-
-        },
-
-        "Pexels": {
-
-            "env_var": "PEXELS_API_KEY",
-
-            "model_var": "PEXELS_MODEL",
-
-            "help": "Para vídeos e imagens de banco de imagens.",
-
-            "icon": "📸",
-
-            "models": []
-
-        },
-
-        "YouTube Data API": {
-
-            "env_var": "YOUTUBE_CLIENT_SECRET", # Dummy var for status check
-
-            "help": "Cole o conteúdo do arquivo client_secret.json aqui.",
-
             "icon": "📹",
 
             "models": []
