@@ -1557,7 +1557,15 @@ if 'session_history' not in st.session_state:
 
 # --- Custom CSS & Theme ---
 
-def apply_custom_style():
+def apply_custom_style(logged_in=False):
+
+    # Dynamic Background Logic
+    if logged_in:
+        # Dashboard: Void (Deep & Calm)
+        bg_image = "radial-gradient(circle at 100% 100%, #172554 0%, #020617 40%)"
+    else:
+        # Login: Nebula (Futuristic & Immersive)
+        bg_image = "radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 60%)"
 
     st.markdown("""
     <style>
@@ -1719,9 +1727,20 @@ def apply_custom_style():
     </style>
     """, unsafe_allow_html=True)
 
+    # Inject Dynamic Background
+    st.markdown(f"""
+    <style>
+        .stApp {{
+            background-image: {bg_image} !important;
+            background-attachment: fixed;
+            background-size: cover;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
 
 
-apply_custom_style()
+
+apply_custom_style(st.session_state.get('logged_in', False))
 
 
 
