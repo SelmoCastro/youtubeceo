@@ -4002,12 +4002,64 @@ def render_integrations():
         except:
 
             pass
-            "icon": "📹",
-
+    # API Providers Definition with SVGs
+    PROVIDERS = {
+        "Supabase Auth": {
+            "env_var": "SUPABASE_URL",
+            "key_var": "SUPABASE_KEY",
+            "help": "URL e Key do projeto Supabase.",
+            "icon": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3ECF8E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>""",
             "models": []
-
+        },
+        "Google Gemini": {
+            "env_var": "GOOGLE_API_KEY",
+            "model_var": "GOOGLE_MODEL",
+            "help": "IA para análise e otimização.",
+            "icon": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 12z"></path><path d="M21 12h-9"></path></svg>""",
+            "models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
+        },
+        "OpenAI (ChatGPT)": {
+            "env_var": "OPENAI_API_KEY",
+            "model_var": "OPENAI_MODEL",
+            "help": "IA alternativa (GPT-4).",
+            "icon": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 12L2.5 17.5"></path><path d="M12 12l9.5 5.5"></path></svg>""",
+            "models": ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
+        },
+        "Anthropic (Claude)": {
+            "env_var": "ANTHROPIC_API_KEY",
+            "model_var": "ANTHROPIC_MODEL",
+            "help": "IA alternativa (Claude).",
+            "icon": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97757" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>""",
+            "models": ["claude-3-5-sonnet-20240620", "claude-3-opus-20240229"]
+        },
+        "Stability AI": {
+            "env_var": "STABILITY_API_KEY",
+            "model_var": "STABILITY_MODEL",
+            "help": "Geração de imagens.",
+            "icon": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7D55C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>""",
+            "models": ["core", "sd3", "ultra"]
+        },
+        "ElevenLabs": {
+            "env_var": "ELEVENLABS_API_KEY",
+            "model_var": "ELEVENLABS_MODEL",
+            "help": "Narração de voz (TTS).",
+            "icon": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>""",
+            "models": ["eleven_multilingual_v2", "eleven_turbo_v2"]
+        },
+        "Pexels": {
+            "env_var": "PEXELS_API_KEY",
+            "model_var": "PEXELS_MODEL",
+            "help": "Banco de vídeos stock.",
+            "icon": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#07A081" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>""",
+            "models": []
+        },
+        "YouTube API": {
+            "env_var": "YOUTUBE_CLIENT_SECRET",
+            "key_var": "YOUTUBE_CLIENT_ID",
+            "help": "Upload e Analytics.",
+            "icon": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF0000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>""",
+            "models": []
         }
-
     }
 
 
