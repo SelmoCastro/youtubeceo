@@ -16,3 +16,4 @@ openai
 Pillow
 python-dotenv
 watchdog
+youtube-transcript-api

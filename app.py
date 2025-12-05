@@ -256,6 +256,37 @@ with st.sidebar:
 
 
 # --- Helper Functions ---
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+
+def get_video_transcript(video_id):
+    """Fetches video transcript/captions."""
+    try:
+        # Try to get Portuguese transcript first, then auto-generated, then English
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        
+        # Try to find manually created Portuguese
+        try:
+            transcript = transcript_list.find_transcript(['pt', 'pt-BR'])
+        except:
+            # Fallback to generated or any available
+            try:
+                transcript = transcript_list.find_generated_transcript(['pt', 'pt-BR'])
+            except:
+                # Last resort: English or the first available and translate
+                transcript = transcript_list.find_transcript(['en'])
+                
+        # Fetch actual data
+        transcript_data = transcript.fetch()
+        
+        # Combine text
+        full_text = " ".join([t['text'] for t in transcript_data])
+        return full_text
+        
+    except (TranscriptsDisabled, NoTranscriptFound):
+        return None
+    except Exception as e:
+        print(f"Transcript Error: {e}")
+        return None
 
 def get_current_user_cached():
     """Returns cached user or fetches if missing."""
@@ -1465,6 +1496,10 @@ with tab4:
                                             persona_key = database.get_user_api_keys(user.id).get("Optimization_Persona", {})
                                             user_persona = persona_key.get("api_key", "")
                                             
+                                        # Fetch Transcript
+                                        transcript_text = get_video_transcript(vid['id'])
+                                        transcript_context = f"Video Transcript/Content:\n{transcript_text[:10000]}..." if transcript_text else "Transcript not available."
+
                                         # Generate
                                         prompt = f"""
                                         Optimize this YouTube video metadata.
@@ -1475,6 +1510,9 @@ with tab4:
                                         Title: {snippet['title']}
                                         Desc: {snippet['description']}
                                         Tags: {snippet.get('tags', [])}
+                                        
+                                        {transcript_context}
+                                        
                                         Output JSON: {{ "title": "...", "description": "...", "tags": [...] }}
                                         """
                                         response = model.generate_content(prompt)
@@ -1565,6 +1603,10 @@ with tab4:
                                 persona_key = database.get_user_api_keys(user.id).get("Optimization_Persona", {})
                                 user_persona = persona_key.get("api_key", "")
 
+                            # Fetch Transcript
+                            transcript_text = get_video_transcript(selected_video_id)
+                            transcript_context = f"Video Transcript/Content:\n{transcript_text[:15000]}..." if transcript_text else "Transcript not available."
+
                             prompt = f"""
                             Optimize this YouTube video metadata for better SEO, CTR, and viral potential.
                             
@@ -1574,6 +1616,8 @@ with tab4:
                             Current Title: {current_title}
                             Current Description: {current_desc}
                             Current Tags: {current_tags}
+                            
+                            {transcript_context}
                             
                             Output ONLY a JSON object with these keys:
                             {{
