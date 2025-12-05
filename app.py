@@ -257,36 +257,81 @@ with st.sidebar:
 
 # --- Helper Functions ---
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+import yt_dlp
+import time
 
 def get_video_transcript(video_id):
-    """Fetches video transcript/captions."""
+    """Fetches video transcript/captions. Fallback to Audio -> Gemini."""
     try:
-        # Try to get Portuguese transcript first, then auto-generated, then English
+        # 1. Try Standard Captions
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        
-        # Try to find manually created Portuguese
         try:
             transcript = transcript_list.find_transcript(['pt', 'pt-BR'])
         except:
-            # Fallback to generated or any available
             try:
                 transcript = transcript_list.find_generated_transcript(['pt', 'pt-BR'])
             except:
-                # Last resort: English or the first available and translate
                 transcript = transcript_list.find_transcript(['en'])
-                
-        # Fetch actual data
-        transcript_data = transcript.fetch()
         
-        # Combine text
+        transcript_data = transcript.fetch()
         full_text = " ".join([t['text'] for t in transcript_data])
         return full_text
         
-    except (TranscriptsDisabled, NoTranscriptFound):
-        return None
-    except Exception as e:
-        print(f"Transcript Error: {e}")
-        return None
+    except (TranscriptsDisabled, NoTranscriptFound, Exception) as e:
+        print(f"Caption fetch failed ({e}). Trying Audio Fallback...")
+        
+        # 2. Fallback: Download Audio & Transcribe with Gemini
+        try:
+            api_key = os.environ.get("GOOGLE_API_KEY")
+            if not api_key:
+                return None
+                
+            genai.configure(api_key=api_key)
+            
+            # Download Audio
+            ydl_opts = {
+                'format': 'm4a/bestaudio/best',
+                'outtmpl': f'temp_{video_id}.%(ext)s',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                }],
+                'quiet': True
+            }
+            
+            audio_file = f"temp_{video_id}.mp3"
+            
+            # Check if already exists to save time
+            if not os.path.exists(audio_file):
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([f'https://www.youtube.com/watch?v={video_id}'])
+            
+            if os.path.exists(audio_file):
+                # Upload to Gemini
+                myfile = genai.upload_file(audio_file)
+                
+                # Wait for processing
+                while myfile.state.name == "PROCESSING":
+                    time.sleep(1)
+                    myfile = genai.get_file(myfile.name)
+                    
+                # Generate Transcript
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                response = model.generate_content([myfile, "Transcreva este áudio em português."])
+                
+                # Cleanup
+                try:
+                    os.remove(audio_file)
+                    myfile.delete()
+                except: pass
+                
+                return response.text
+                
+        except Exception as e_audio:
+            print(f"Audio Fallback Error: {e_audio}")
+            return None
+
+    return None
 
 def get_current_user_cached():
     """Returns cached user or fetches if missing."""

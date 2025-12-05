@@ -17,3 +17,4 @@ Pillow
 python-dotenv
 watchdog
 youtube-transcript-api
+yt-dlp
