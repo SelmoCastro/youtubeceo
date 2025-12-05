@@ -726,21 +726,23 @@ def get_top_performing_videos(service, max_results=10):
 
 
 
+
 def get_current_user_cached():
-
     """Returns cached user or fetches if missing."""
-
     if 'user' in st.session_state and st.session_state.user:
-
-
-    """Authenticates with YouTube Data API."""
-
-    creds = None
-
+        return st.session_state.user
     
+    user = auth.get_current_user()
+    if user:
+        st.session_state.user = user
+        st.session_state.logged_in = True
+    return user
 
+def get_authenticated_service():
+    """Authenticates with YouTube Data API."""
+    creds = None
+    
     # Try to load from DB first if logged in
-
     user = get_current_user_cached()
 
     if user:
