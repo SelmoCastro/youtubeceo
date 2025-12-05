@@ -333,6 +333,35 @@ def get_video_transcript(video_id):
 
     return None
 
+def get_top_performing_videos(service, max_results=10):
+    """Fetches top performing videos by views to learn channel style."""
+    try:
+        # Get All Videos (limited to 50 for speed, then sort)
+        # Note: Search API is better for sorting by viewCount but costs more quota (100 units).
+        # PlaylistItems cost 1 unit. We'll fetch recent 50 and sort, or use Search if quota allows.
+        # Let's use Search for accuracy of "Top Performing" across all time.
+        
+        search_response = service.search().list(
+            forMine=True,
+            part='snippet',
+            type='video',
+            order='viewCount',
+            maxResults=max_results
+        ).execute()
+        
+        top_videos = []
+        for item in search_response.get('items', []):
+            top_videos.append({
+                'title': item['snippet']['title'],
+                'description': item['snippet']['description']
+            })
+            
+        return top_videos
+        
+    except Exception as e:
+        print(f"Error fetching top videos: {e}")
+        return []
+
 def get_current_user_cached():
     """Returns cached user or fetches if missing."""
     if 'user' in st.session_state and st.session_state.user:
@@ -1545,12 +1574,22 @@ with tab4:
                                         transcript_text = get_video_transcript(vid['id'])
                                         transcript_context = f"Video Transcript/Content:\n{transcript_text[:10000]}..." if transcript_text else "Transcript not available."
 
+                                        # Fetch Channel Learning Context (Top Videos)
+                                        top_videos = get_top_performing_videos(service, max_results=5)
+                                        channel_context = ""
+                                        if top_videos:
+                                            channel_context = "Top Performing Videos on this Channel (Emulate this style):\n"
+                                            for tv in top_videos:
+                                                channel_context += f"- {tv['title']}\n"
+
                                         # Generate
                                         prompt = f"""
                                         Optimize this YouTube video metadata.
                                         
                                         User Persona / Channel Style Instructions:
                                         {user_persona if user_persona else "No specific style defined. Use best practices for high CTR and engagement."}
+                                        
+                                        {channel_context}
 
                                         Title: {snippet['title']}
                                         Desc: {snippet['description']}
@@ -1661,11 +1700,21 @@ with tab4:
 
                             transcript_context = f"Video Transcript/Content:\n{transcript_text[:15000]}..." if transcript_text else "Transcript not available."
 
+                            # Fetch Channel Learning Context (Top Videos)
+                            top_videos = get_top_performing_videos(service, max_results=5)
+                            channel_context = ""
+                            if top_videos:
+                                channel_context = "Top Performing Videos on this Channel (Emulate this style):\n"
+                                for tv in top_videos:
+                                    channel_context += f"- {tv['title']}\n"
+
                             prompt = f"""
                             Optimize this YouTube video metadata for better SEO, CTR, and viral potential.
                             
                             User Persona / Channel Style Instructions:
                             {user_persona if user_persona else "No specific style defined. Use best practices for high CTR and engagement."}
+                            
+                            {channel_context}
                             
                             Current Title: {current_title}
                             Current Description: {current_desc}
