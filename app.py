@@ -1605,6 +1605,15 @@ with tab4:
 
                             # Fetch Transcript
                             transcript_text = get_video_transcript(selected_video_id)
+                            
+                            # Debug/Feedback UI
+                            if transcript_text:
+                                st.success(f"✅ Transcrição carregada ({len(transcript_text)} caracteres)")
+                                with st.expander("Ver Transcrição Usada"):
+                                    st.text(transcript_text[:1000] + "..." if len(transcript_text) > 1000 else transcript_text)
+                            else:
+                                st.warning("⚠️ Não foi possível carregar a transcrição deste vídeo. A IA usará apenas o título e descrição atuais.")
+
                             transcript_context = f"Video Transcript/Content:\n{transcript_text[:15000]}..." if transcript_text else "Transcript not available."
 
                             prompt = f"""
